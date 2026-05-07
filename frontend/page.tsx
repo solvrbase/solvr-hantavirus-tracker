@@ -556,7 +556,9 @@ export default function HantavirusPage() {
                   <span className="text-[9px] font-mono px-2 py-0.5 rounded bg-green-500/15 text-green-400">FREE</span>
                   <span className="text-[9px] font-mono px-2 py-0.5 rounded bg-blue-500/15 text-blue-400">OPEN</span>
                   <a
-                    href="/api-docs"
+                    href="https://solvrbot.com/api-docs"
+                    target="_blank"
+                    rel="noopener noreferrer"
                     className="text-xs text-[#00d4ff] hover:underline"
                   >
                     API Docs →
@@ -585,7 +587,7 @@ export default function HantavirusPage() {
               </div>
               <div>
                 Intelligence powered by{" "}
-                <a href="/" className="text-[#00d4ff] hover:underline">
+                <a href="https://solvrbot.com" target="_blank" rel="noopener noreferrer" className="text-[#00d4ff] hover:underline">
                   Solvr
                 </a>
                 {" "}· Free public data for global health awareness

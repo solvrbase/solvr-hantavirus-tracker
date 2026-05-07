@@ -1,16 +1,25 @@
-"""Hantavirus outbreak tracker — live WHO DON RSS parsing + structured response."""
+"""Hantavirus outbreak tracker — standalone WHO DON RSS parser."""
 import re
 import time
 import logging
-from datetime import datetime
+import xml.etree.ElementTree as ET
+from datetime import datetime, timezone
+
+import httpx
 
 logger = logging.getLogger(__name__)
 
 _CACHE_TTL = 7200  # 2 hours
 _cache: dict = {}
 
-# Baseline from WHO Disease Outbreak News, 2026-05-06.
-# These values are overridden at runtime if WHO DON RSS has fresher data.
+WHO_DON_RSS = "https://www.who.int/feeds/entity/csr/don/en/rss.xml"
+
+NEWS_FEEDS = [
+    ("WHO Disease Outbreak News", WHO_DON_RSS),
+    ("BBC Health", "http://feeds.bbci.co.uk/news/health/rss.xml"),
+    ("The Guardian Health", "https://www.theguardian.com/society/health/rss"),
+]
+
 _BASELINE = {
     "name": "Andes Hantavirus",
     "subtype": "HPS — Hantavirus Pulmonary Syndrome",
@@ -112,19 +121,11 @@ _BASELINE = {
     ],
 }
 
-# ── WHO DON case count parser ─────────────────────────────────────────────────
 
 def _parse_cases(text: str) -> dict:
-    """Extract case counts from WHO Disease Outbreak News article text.
-
-    WHO DON articles follow a consistent pattern:
-      "As of 6 May, there are 8 cases, 3 of whom are confirmed..."
-      "a total of N cases have been identified, of which M are confirmed"
-    """
     found: dict = {}
     t = text.replace("\n", " ")
 
-    # Total cases — several common phrasings
     for pat in [
         r"total\s+of\s+(\d+)\s+(?:human\s+)?cases?",
         r"there\s+are\s+(\d+)\s+cases?",
@@ -137,7 +138,6 @@ def _parse_cases(text: str) -> dict:
             found["total_cases"] = int(m.group(1))
             break
 
-    # Confirmed
     for pat in [
         r"(\d+)\s+of\s+(?:which|whom)\s+(?:are|were|have\s+been)\s+confirmed",
         r"(\d+)\s+(?:are|were|have\s+been)\s+confirmed\s+by\s+laboratory",
@@ -148,7 +148,6 @@ def _parse_cases(text: str) -> dict:
             found["confirmed_cases"] = int(m.group(1))
             break
 
-    # Deaths
     m = re.search(r"(\d+)\s+deaths?", t, re.I)
     if m:
         found["deaths"] = int(m.group(1))
@@ -158,72 +157,88 @@ def _parse_cases(text: str) -> dict:
     return found
 
 
-def _is_hantavirus_article(article: dict) -> bool:
-    text = (article.get("title", "") + " " + article.get("summary", "")).lower()
+def _is_hantavirus(title: str, summary: str) -> bool:
+    text = (title + " " + summary).lower()
     return "hantavirus" in text or "hantaviral" in text
 
 
-# ── Main data function ────────────────────────────────────────────────────────
+async def _fetch_rss(client: httpx.AsyncClient, name: str, url: str) -> list[dict]:
+    """Fetch and parse a single RSS feed. Returns list of article dicts."""
+    try:
+        r = await client.get(url, timeout=10)
+        r.raise_for_status()
+        root = ET.fromstring(r.text)
+        items = []
+        for item in root.iter("item"):
+            title = item.findtext("title", "").strip()
+            link = item.findtext("link", "").strip()
+            desc = item.findtext("description", "").strip()
+            pub = item.findtext("pubDate", "").strip()
+            items.append({
+                "title": title,
+                "url": link,
+                "source": name,
+                "published_at": pub,
+                "summary": re.sub(r"<[^>]+>", "", desc)[:500],
+            })
+        return items
+    except Exception as e:
+        logger.warning(f"RSS fetch failed ({name}): {e}")
+        return []
+
 
 async def get_hantavirus_data() -> dict:
-    """Return structured hantavirus outbreak data. Tries to parse live WHO DON
-    case counts from RSS; falls back to hardcoded baseline if unavailable."""
+    """Return structured hantavirus outbreak data.
+    Fetches WHO DON RSS directly; falls back to hardcoded baseline if unavailable.
+    """
     now = time.time()
     cached = _cache.get("data")
     if cached and (now - cached[1]) < _CACHE_TTL:
         return cached[0]
 
-    # Fetch WHO DON + health news
     news_items: list[dict] = []
     live_counts: dict = {}
     who_article_date: str | None = None
 
     try:
-        from bot.services.news import NewsService
-        svc = NewsService()
-        try:
-            result = await svc.get_headlines("health", limit=50)
-        finally:
-            await svc.close()
+        async with httpx.AsyncClient(
+            headers={"User-Agent": "HantavirusTracker/1.0 (https://github.com/solvrbase/solvr-hantavirus-tracker)"},
+            follow_redirects=True,
+        ) as client:
+            all_articles: list[dict] = []
+            for feed_name, feed_url in NEWS_FEEDS:
+                articles = await _fetch_rss(client, feed_name, feed_url)
+                all_articles.extend(articles)
 
-        if result.get("success"):
-            all_articles = result.get("articles", [])
-            hanta_articles = [a for a in all_articles if _is_hantavirus_article(a)]
+        hanta_articles = [a for a in all_articles if _is_hantavirus(a["title"], a["summary"])]
 
-            # Parse case counts from most recent matching article
-            for article in sorted(hanta_articles, key=lambda x: x.get("published_ts", 0), reverse=True):
-                text = article.get("title", "") + " " + article.get("summary", "")
-                parsed = _parse_cases(text)
-                if parsed:
-                    live_counts = parsed
-                    who_article_date = article.get("published_at")
-                    logger.info(f"Hantavirus live counts from '{article.get('source')}': {parsed}")
-                    break
+        for article in hanta_articles:
+            text = article["title"] + " " + article["summary"]
+            parsed = _parse_cases(text)
+            if parsed:
+                live_counts = parsed
+                who_article_date = article.get("published_at")
+                break
 
-            # News feed: hantavirus articles first, then fall through to health headlines
-            for a in hanta_articles[:6]:
-                news_items.append({
-                    "title": a.get("title"),
-                    "url": a.get("url"),
-                    "source": a.get("source"),
-                    "published_at": a.get("published_at"),
-                    "summary": a.get("summary"),
-                })
+        for a in hanta_articles[:6]:
+            news_items.append({
+                "title": a["title"],
+                "url": a["url"],
+                "source": a["source"],
+                "published_at": a["published_at"],
+                "summary": a["summary"],
+            })
 
     except Exception as e:
-        logger.warning(f"Hantavirus WHO DON fetch failed: {e}")
+        logger.warning(f"RSS pipeline failed: {e}")
 
-    # Merge live counts into outbreak dict
     import copy
     outbreak = copy.deepcopy(_BASELINE)
 
     if live_counts:
-        if "total_cases" in live_counts:
-            outbreak["total_cases"] = live_counts["total_cases"]
-        if "confirmed_cases" in live_counts:
-            outbreak["confirmed_cases"] = live_counts["confirmed_cases"]
-        if "deaths" in live_counts:
-            outbreak["deaths"] = live_counts["deaths"]
+        for key in ("total_cases", "confirmed_cases", "deaths"):
+            if key in live_counts:
+                outbreak[key] = live_counts[key]
         if who_article_date:
             outbreak["last_updated"] = who_article_date
         outbreak["live_data"] = True
@@ -235,7 +250,7 @@ async def get_hantavirus_data() -> dict:
         "success": True,
         "outbreak": outbreak,
         "news": news_items,
-        "fetched_at": datetime.utcnow().isoformat() + "Z",
+        "fetched_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
     }
     _cache["data"] = (data, now)
     return data
