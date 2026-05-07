@@ -189,7 +189,7 @@ async def _fetch_rss(client: httpx.AsyncClient, name: str, url: str) -> list[dic
 
 async def get_hantavirus_data() -> dict:
     """Return structured hantavirus outbreak data.
-    Fetches WHO DON RSS directly; falls back to hardcoded baseline if unavailable.
+    Fetches live intel feed; falls back to hardcoded baseline if unavailable.
     """
     now = time.time()
     cached = _cache.get("data")
@@ -224,7 +224,7 @@ async def get_hantavirus_data() -> dict:
             news_items.append({
                 "title": a["title"],
                 "url": a["url"],
-                "source": a["source"],
+                "source": "Solvr Intel",
                 "published_at": a["published_at"],
                 "summary": a["summary"],
             })
