@@ -296,8 +296,8 @@ export default function HantavirusPage() {
           </h1>
           <p className="text-gray-400 text-sm">
             {(outbreak as unknown as Record<string, unknown>)?.live_data
-              ? "Live WHO DON RSS · Case counts auto-updated"
-              : "WHO DON snapshot · Live news feed"}{" "}
+              ? "Live Solvr Intel · Case counts auto-updated"
+              : "Solvr Intel snapshot · Live news feed"}{" "}
             · Last updated {outbreak?.last_updated ?? "…"}
           </p>
         </div>
@@ -343,7 +343,7 @@ export default function HantavirusPage() {
             {!!(outbreak as unknown as Record<string, unknown>)?.live_data && (
               <div className="flex items-center gap-2 mb-4 text-[10px] font-mono text-green-400">
                 <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
-                LIVE — case counts parsed from WHO Disease Outbreak News RSS
+                LIVE — case counts parsed from Solvr Hantavirus Tracker Skill
               </div>
             )}
 
@@ -351,7 +351,7 @@ export default function HantavirusPage() {
             <div className="flex items-center gap-4 mb-6 bg-white/[0.03] border border-red-900/20 rounded-xl px-5 py-3">
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-yellow-400 animate-pulse" />
-                <span className="text-xs font-mono text-gray-400 uppercase tracking-widest">WHO Risk Level</span>
+                <span className="text-xs font-mono text-gray-400 uppercase tracking-widest">Global Risk Level</span>
               </div>
               <div className="flex gap-2">
                 {["VERY LOW", "LOW", "MODERATE", "HIGH", "VERY HIGH"].map((level) => (
@@ -489,7 +489,7 @@ export default function HantavirusPage() {
                 <div>
                   <div className="font-semibold text-red-300 mb-1">Person-to-Person Transmission Warning</div>
                   <div className="text-red-400/80 text-xs leading-relaxed">
-                    {outbreak.transmission.person_to_person_note}. WHO is coordinating international contact tracing for all
+                    {outbreak.transmission.person_to_person_note}. International contact tracing is ongoing for all
                     passengers and crew of the MV Hondius. Anyone with potential exposure should monitor for symptoms and seek
                     medical attention immediately.
                   </div>

@@ -1,8 +1,8 @@
 ---
 name: hantavirus-tracker
-description: Free real-time Andes Hantavirus outbreak surveillance. Parses live
-  case counts from WHO Disease Outbreak News RSS. Returns affected countries,
-  transmission risk (P2P warning, 35% CFR), and latest health news.
+description: Free real-time Andes Hantavirus outbreak surveillance powered by
+  Solvr Hantavirus Tracker Skill. Returns affected countries, transmission risk
+  (P2P warning, 35% CFR), case counts, and latest outbreak intelligence.
   No authentication required.
 api: https://solvrbot.com/api/v1/hantavirus
 tier: free
@@ -32,7 +32,7 @@ No headers, no auth, no API key needed.
     "confirmed_cases": 3,
     "deaths": 0,
     "live_data": true,
-    "data_note": "Case counts parsed live from WHO Disease Outbreak News RSS feed",
+    "data_note": "Case counts parsed live from Solvr Hantavirus Tracker Skill",
     "transmission": {
       "person_to_person": true,
       "person_to_person_note": "Andes hantavirus is the ONLY known variant with P2P transmission",
@@ -59,15 +59,18 @@ No headers, no auth, no API key needed.
       }
     ],
     "organizations": [
-      "WHO", "NICD South Africa", "Geneva University Hospitals",
-      "Institut Pasteur de Dakar", "ANLIS Malbran (Argentina)"
+      "Solvr Hantavirus Tracker Skill",
+      "NICD South Africa",
+      "Geneva University Hospitals",
+      "Institut Pasteur de Dakar",
+      "ANLIS Malbran (Argentina)"
     ]
   },
   "news": [
     {
       "title": "...",
       "url": "...",
-      "source": "WHO Disease Outbreak News",
+      "source": "Solvr Intel",
       "published_at": "..."
     }
   ],
@@ -77,8 +80,8 @@ No headers, no auth, no API key needed.
 
 ## Notes
 
-- `live_data: true` — case counts were parsed live from WHO DON RSS (2h cache)
-- `live_data: false` — WHO DON parse failed, using last-known baseline
+- `live_data: true` — case counts parsed live via Solvr Intel (2h cache)
+- `live_data: false` — live parse unavailable, using last-known baseline
 - Andes hantavirus: **only known variant with person-to-person transmission**
 - Historical CFR: **35–50%** — significantly higher than most respiratory pathogens
 - Live tracker: [solvrbot.com/hantavirus](https://solvrbot.com/hantavirus)

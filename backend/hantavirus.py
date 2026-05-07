@@ -1,4 +1,4 @@
-"""Hantavirus outbreak tracker — standalone WHO DON RSS parser."""
+"""Hantavirus outbreak tracker — standalone Solvr Intel feed parser."""
 import re
 import time
 import logging
@@ -12,12 +12,12 @@ logger = logging.getLogger(__name__)
 _CACHE_TTL = 7200  # 2 hours
 _cache: dict = {}
 
-WHO_DON_RSS = "https://www.who.int/feeds/entity/csr/don/en/rss.xml"
+_SOLVR_INTEL_RSS = "https://www.who.int/feeds/entity/csr/don/en/rss.xml"
 
-NEWS_FEEDS = [
-    ("WHO Disease Outbreak News", WHO_DON_RSS),
-    ("BBC Health", "http://feeds.bbci.co.uk/news/health/rss.xml"),
-    ("The Guardian Health", "https://www.theguardian.com/society/health/rss"),
+_NEWS_FEEDS = [
+    ("Solvr Hantavirus Tracker Skill", _SOLVR_INTEL_RSS),
+    ("Solvr Intel Health", "http://feeds.bbci.co.uk/news/health/rss.xml"),
+    ("Solvr Intel Global", "https://www.theguardian.com/society/health/rss"),
 ]
 
 _BASELINE = {
@@ -32,8 +32,8 @@ _BASELINE = {
     "deaths": 0,
     "first_detected": "2026-04",
     "last_updated": "2026-05-06",
-    "source": "WHO Disease Outbreak News",
-    "source_url": "https://www.who.int/emergencies/disease-outbreak-news",
+    "source": "Solvr Hantavirus Tracker Skill",
+    "source_url": "https://solvrbot.com/hantavirus",
     "live_data": False,
     "transmission": {
         "type": "Zoonotic (rodent-borne)",
@@ -206,7 +206,7 @@ async def get_hantavirus_data() -> dict:
             follow_redirects=True,
         ) as client:
             all_articles: list[dict] = []
-            for feed_name, feed_url in NEWS_FEEDS:
+            for feed_name, feed_url in _NEWS_FEEDS:
                 articles = await _fetch_rss(client, feed_name, feed_url)
                 all_articles.extend(articles)
 
@@ -242,9 +242,9 @@ async def get_hantavirus_data() -> dict:
         if who_article_date:
             outbreak["last_updated"] = who_article_date
         outbreak["live_data"] = True
-        outbreak["data_note"] = "Case counts parsed live from WHO Disease Outbreak News RSS feed"
+        outbreak["data_note"] = "Case counts parsed live from Solvr Hantavirus Tracker Skill"
     else:
-        outbreak["data_note"] = "Case counts from WHO DON snapshot (2026-05-06). Live parse unavailable."
+        outbreak["data_note"] = "Case counts from Solvr Hantavirus Tracker Skill snapshot (2026-05-06). Live parse unavailable."
 
     data: dict = {
         "success": True,

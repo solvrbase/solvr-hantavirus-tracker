@@ -1,10 +1,10 @@
 # ☣ Hantavirus Outbreak Tracker
 
-> Real-time Andes Hantavirus surveillance — WHO case data, affected countries, live news, and free AI agent skill.
+> Real-time Andes Hantavirus surveillance — live case data, affected countries, outbreak intelligence, and free AI agent skill.
 
 **Live demo → [solvrbot.com/hantavirus](https://solvrbot.com/hantavirus)**
 
-![Plague Inc inspired tracker UI](https://media.solvrbot.com/hantavirus-preview.png)
+<!-- Add a screenshot here after first deploy: ![Tracker UI](screenshot.png) -->
 
 ---
 
@@ -12,8 +12,8 @@
 
 A free, open-source outbreak tracker for the **2026 Andes Hantavirus** event (origin: MV Hondius cruise ship). It:
 
-- Parses live case counts directly from the **WHO Disease Outbreak News RSS feed**
-- Falls back to the last-known WHO baseline if live parse fails
+- Parses live case counts via **Solvr Hantavirus Tracker Skill** intelligence feed
+- Falls back to the last-known baseline if live parse fails
 - Serves a structured JSON response useful for AI agents, dashboards, and health monitoring bots
 - Powers a Plague Inc-inspired web tracker at [solvrbot.com/hantavirus](https://solvrbot.com/hantavirus)
 
@@ -56,7 +56,7 @@ curl https://solvrbot.com/api/v1/hantavirus
 }
 ```
 
-Cached 2 hours. `live_data: true` means case counts were parsed live from WHO DON RSS.
+Cached 2 hours. `live_data: true` means case counts were parsed live from Solvr Intel feed.
 
 ---
 
@@ -67,7 +67,7 @@ Paste this into any AI agent (works with Bankr, OpenClaw, or any skill.md-compat
 ```yaml
 ---
 name: hantavirus-tracker
-description: Free real-time hantavirus outbreak surveillance. WHO case data,
+description: Free real-time hantavirus outbreak surveillance. Case data,
   affected countries, transmission intel, live news. No auth required.
 api: https://solvrbot.com/api/v1/hantavirus
 tier: free
@@ -94,7 +94,7 @@ The tracker runs on:
 
 ### Self-host the backend
 
-Requires `httpx` and a news RSS fetcher. See [backend/hantavirus.py](./backend/hantavirus.py) for the service code and [backend/api_handler.py](./backend/api_handler.py) for the aiohttp route.
+Requires `httpx`. See [backend/hantavirus.py](./backend/hantavirus.py) for the service code and [backend/api_handler.py](./backend/api_handler.py) for the aiohttp route.
 
 ---
 
@@ -102,16 +102,16 @@ Requires `httpx` and a news RSS fetcher. See [backend/hantavirus.py](./backend/h
 
 | Data | Source | Freshness |
 |------|--------|-----------|
-| Case counts | WHO Disease Outbreak News RSS | Live parse (2h cache) |
-| Affected regions | WHO DON 2026-05-06 | Manual update as situation evolves |
-| News articles | BBC Health, The Guardian Health, WHO DON | 2h cache |
-| Transmission info | WHO/CDC Hantavirus fact sheets | Static |
+| Case counts | Solvr Hantavirus Tracker Skill | Live parse (2h cache) |
+| Affected regions | Solvr Intel snapshot (2026-05-06) | Updated as situation evolves |
+| News articles | Solvr Intel feed | 2h cache |
+| Transmission info | Global health fact sheets | Static |
 
 ---
 
 ## About Solvr
 
-This tracker is powered by the **Solvr Intelligence API** — a free tier API for AI agents that provides world news, WHO outbreak data, global economic data, token security scans, and technical analysis.
+This tracker is powered by the **Solvr Intelligence API** — a free tier API for AI agents that provides world news, outbreak data, global economic data, token security scans, and technical analysis.
 
 - API docs: [solvrbot.com/api-docs](https://solvrbot.com/api-docs)
 - Skills library: [solvrbot.com/skills](https://solvrbot.com/skills)
