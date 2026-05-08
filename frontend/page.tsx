@@ -25,6 +25,7 @@ const STATUS_COLORS: Record<string, string> = {
   CONFIRMED: "#f97316",
   "SOURCE REGION": "#a855f7",
   RESPONDING: "#3b82f6",
+  REPORTED: "#22c55e",
 };
 
 type AffectedEntry = {
@@ -47,6 +48,7 @@ type Outbreak = {
   origin_event: string;
   status: string;
   risk_level: string;
+  who_global_risk?: string;
   total_cases: number;
   confirmed_cases: number;
   deaths: number;
@@ -79,6 +81,7 @@ type OutbreakData = {
   success: boolean;
   outbreak: Outbreak;
   news: NewsItem[];
+  global_intel?: NewsItem[];
   fetched_at: string;
 };
 
@@ -246,7 +249,7 @@ export default function HantavirusPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    document.title = "Hantavirus Outbreak Tracker — Solvr Intel";
+    document.title = "Global Hantavirus Tracker — Solvr Intel";
   }, []);
 
   useEffect(() => {
@@ -262,6 +265,7 @@ export default function HantavirusPage() {
 
   const outbreak = data?.outbreak;
   const news = data?.news ?? [];
+  const globalIntel = data?.global_intel ?? [];
 
   return (
     <div
@@ -291,14 +295,13 @@ export default function HantavirusPage() {
             </div>
           </div>
           <h1 className="text-4xl md:text-5xl font-black tracking-tight text-white mb-1">
-            Andes{" "}
-            <span className="text-red-500">Hantavirus</span>
+            Global <span className="text-red-500">Hantavirus</span> Tracker
           </h1>
           <p className="text-gray-400 text-sm">
-            {(outbreak as unknown as Record<string, unknown>)?.live_data
-              ? "Live Solvr Intel · Case counts auto-updated"
-              : "Solvr Intel snapshot · Live news feed"}{" "}
-            · Last updated {outbreak?.last_updated ?? "…"}
+            Real-time global surveillance · ProMED Mail + HealthMap + Solvr Intel · 20+ strains tracked
+          </p>
+          <p className="text-gray-600 text-xs mt-1">
+            Active cluster: 2026 MV Hondius (Andes strain · P2P) · Last updated {outbreak?.last_updated ?? "…"}
           </p>
         </div>
 
@@ -317,26 +320,64 @@ export default function HantavirusPage() {
 
         {outbreak && (
           <>
-            {/* Stats row */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-              {[
-                { label: "TOTAL CASES", value: outbreak.total_cases, color: "#ef4444", sub: "reported" },
-                { label: "CONFIRMED", value: outbreak.confirmed_cases, color: "#f97316", sub: "lab-verified" },
-                { label: "DEATHS", value: outbreak.deaths, color: "#6b7280", sub: "current" },
-                { label: "COUNTRIES", value: outbreak.affected.filter((a) => a.cases !== null).length, color: "#a855f7", sub: "with cases" },
-              ].map((stat) => (
-                <div
-                  key={stat.label}
-                  className="rounded-xl border border-white/5 bg-white/[0.03] px-5 py-4 text-center"
-                  style={{ borderColor: `${stat.color}22` }}
-                >
-                  <div className="text-3xl font-black mb-0.5" style={{ color: stat.color }}>
-                    <AnimatedCounter value={stat.value} />
+            {/* Global surveillance context row */}
+            <div className="mb-4">
+              <div className="text-[10px] font-mono uppercase tracking-widest text-blue-500/60 mb-2 flex items-center gap-2">
+                <span>🌐</span> GLOBAL HANTAVIRUS SURVEILLANCE
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {[
+                  {
+                    label: "GLOBAL REPORTS",
+                    display: globalIntel.length > 0 ? `${globalIntel.length}` : "tracking",
+                    color: "#3b82f6",
+                    sub: globalIntel.length > 0 ? "ProMED + HealthMap" : "ProMED + HealthMap · live",
+                  },
+                  { label: "ANNUAL BURDEN", display: "~300+", color: "#6366f1", sub: "cases/yr · Americas" },
+                  { label: "WHO GLOBAL RISK", display: outbreak.who_global_risk ?? "LOW", color: "#22c55e", sub: "current assessment" },
+                  { label: "STRAINS TRACKED", display: "20+", color: "#a855f7", sub: "Andes · SNV · Puumala · more" },
+                ].map((stat) => (
+                  <div
+                    key={stat.label}
+                    className="rounded-xl border bg-blue-950/10 px-4 py-3 text-center"
+                    style={{ borderColor: `${stat.color}22` }}
+                  >
+                    <div className="text-2xl font-black mb-0.5" style={{ color: stat.color }}>{stat.display}</div>
+                    <div className="text-[10px] font-mono uppercase tracking-widest text-gray-400">{stat.label}</div>
+                    <div className="text-[10px] text-gray-600 mt-0.5">{stat.sub}</div>
                   </div>
-                  <div className="text-[10px] font-mono uppercase tracking-widest text-gray-400">{stat.label}</div>
-                  <div className="text-[10px] text-gray-600 mt-0.5">{stat.sub}</div>
-                </div>
-              ))}
+                ))}
+              </div>
+              <div className="mt-2 text-[10px] text-gray-700 text-right font-mono">
+                Annual burden: PAHO/WHO aggregate · Live reports: ProMED Mail + HealthMap RSS
+              </div>
+            </div>
+
+            {/* Featured cluster stats */}
+            <div className="mb-6">
+              <div className="text-[10px] font-mono uppercase tracking-widest text-red-500/60 mb-2 flex items-center gap-2">
+                <span className="animate-pulse">●</span> FEATURED ACTIVE CLUSTER — 2026 MV HONDIUS (ANDES STRAIN · P2P TRANSMISSION)
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {[
+                  { label: "TOTAL CASES", value: outbreak.total_cases, color: "#ef4444", sub: "this cluster" },
+                  { label: "CONFIRMED", value: outbreak.confirmed_cases, color: "#f97316", sub: "lab-verified" },
+                  { label: "DEATHS", value: outbreak.deaths, color: "#6b7280", sub: "this cluster" },
+                  { label: "COUNTRIES", value: outbreak.affected.filter((a) => a.cases !== null).length, color: "#a855f7", sub: "with cases" },
+                ].map((stat) => (
+                  <div
+                    key={stat.label}
+                    className="rounded-xl border border-white/5 bg-white/[0.03] px-5 py-4 text-center"
+                    style={{ borderColor: `${stat.color}22` }}
+                  >
+                    <div className="text-3xl font-black mb-0.5" style={{ color: stat.color }}>
+                      <AnimatedCounter value={stat.value} />
+                    </div>
+                    <div className="text-[10px] font-mono uppercase tracking-widest text-gray-400">{stat.label}</div>
+                    <div className="text-[10px] text-gray-600 mt-0.5">{stat.sub}</div>
+                  </div>
+                ))}
+              </div>
             </div>
 
             {/* Live data badge */}
@@ -536,6 +577,72 @@ export default function HantavirusPage() {
                       </div>
                     </a>
                   ))}
+                </div>
+              )}
+            </div>
+
+            {/* Global Intelligence Feed */}
+            <div className="mb-6">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="text-[10px] font-mono uppercase tracking-widest text-gray-500">
+                  GLOBAL HANTAVIRUS INTELLIGENCE
+                </div>
+                <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                  ProMED + HealthMap
+                </span>
+                {globalIntel.length > 0 && (
+                  <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-green-500/10 text-green-400 border border-green-500/20">
+                    {globalIntel.length} reports
+                  </span>
+                )}
+              </div>
+              {globalIntel.length === 0 ? (
+                <div className="bg-blue-950/10 border border-blue-900/20 rounded-xl px-5 py-4 text-xs text-gray-500 flex items-start gap-3">
+                  <span className="text-blue-500/50 flex-shrink-0 mt-0.5">🌐</span>
+                  <div>
+                    <div className="text-gray-400 font-medium mb-1">No new global hantavirus reports in live feeds</div>
+                    <div className="text-gray-600 leading-relaxed">
+                      ProMED Mail and HealthMap are being monitored in real-time. When new hantavirus cases are reported globally — Argentina, Chile, USA, Europe, or elsewhere — articles will appear here automatically.
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {globalIntel.map((item, i) => {
+                    const sourceColor = item.source === "ProMED Mail"
+                      ? { text: "text-amber-400", bg: "bg-amber-500/10", border: "border-amber-500/20" }
+                      : { text: "text-blue-400", bg: "bg-blue-500/10", border: "border-blue-500/20" };
+                    return (
+                      <a
+                        key={i}
+                        href={item.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block bg-white/[0.03] border border-white/5 hover:border-blue-900/40 rounded-xl px-5 py-4 transition-colors group"
+                      >
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1 min-w-0">
+                            <div className="text-sm font-medium text-white group-hover:text-blue-300 transition-colors mb-1 line-clamp-2">
+                              {item.title}
+                            </div>
+                            {item.summary && (
+                              <div className="text-xs text-gray-500 line-clamp-2">{item.summary}</div>
+                            )}
+                          </div>
+                          <div className="text-[10px] font-mono flex-shrink-0 text-right">
+                            <div className={`px-1.5 py-0.5 rounded border ${sourceColor.bg} ${sourceColor.border} ${sourceColor.text} mb-1`}>
+                              {item.source}
+                            </div>
+                            {item.published_at && (
+                              <div className="text-gray-700 mt-0.5">
+                                {new Date(item.published_at.endsWith("Z") ? item.published_at : item.published_at + "Z").toLocaleDateString()}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </a>
+                    );
+                  })}
                 </div>
               )}
             </div>

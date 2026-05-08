@@ -26,6 +26,40 @@ _GLOBAL_INTEL_FEEDS = [
     ("HealthMap", "https://healthmap.org/rss/en/"),
 ]
 
+_PROMED_COUNTRY_MAP: dict[str, dict] = {
+    "ARGENTINA":        {"id": "AR", "name": "Argentina",     "flag": "🇦🇷", "lat": -35.0,  "lon": -65.0,  "region": "South America"},
+    "CHILE":            {"id": "CL", "name": "Chile",         "flag": "🇨🇱", "lat": -33.5,  "lon": -70.7,  "region": "South America"},
+    "BRAZIL":           {"id": "BR", "name": "Brazil",        "flag": "🇧🇷", "lat": -14.0,  "lon": -51.0,  "region": "South America"},
+    "BOLIVIA":          {"id": "BO", "name": "Bolivia",       "flag": "🇧🇴", "lat": -16.3,  "lon": -63.6,  "region": "South America"},
+    "PARAGUAY":         {"id": "PY", "name": "Paraguay",      "flag": "🇵🇾", "lat": -23.4,  "lon": -58.4,  "region": "South America"},
+    "URUGUAY":          {"id": "UY", "name": "Uruguay",       "flag": "🇺🇾", "lat": -32.5,  "lon": -55.8,  "region": "South America"},
+    "PANAMA":           {"id": "PA", "name": "Panama",        "flag": "🇵🇦", "lat":   8.5,  "lon": -80.8,  "region": "Central America"},
+    "VENEZUELA":        {"id": "VE", "name": "Venezuela",     "flag": "🇻🇪", "lat":   8.0,  "lon": -66.0,  "region": "South America"},
+    "USA":              {"id": "US", "name": "United States", "flag": "🇺🇸", "lat":  38.0,  "lon": -97.0,  "region": "North America"},
+    "UNITED STATES":    {"id": "US", "name": "United States", "flag": "🇺🇸", "lat":  38.0,  "lon": -97.0,  "region": "North America"},
+    "CANADA":           {"id": "CA", "name": "Canada",        "flag": "🇨🇦", "lat":  56.0,  "lon": -96.0,  "region": "North America"},
+    "GERMANY":          {"id": "DE", "name": "Germany",       "flag": "🇩🇪", "lat":  51.0,  "lon":  10.0,  "region": "Europe"},
+    "FINLAND":          {"id": "FI", "name": "Finland",       "flag": "🇫🇮", "lat":  61.0,  "lon":  26.0,  "region": "Europe"},
+    "SWEDEN":           {"id": "SE", "name": "Sweden",        "flag": "🇸🇪", "lat":  62.0,  "lon":  15.0,  "region": "Europe"},
+    "FRANCE":           {"id": "FR", "name": "France",        "flag": "🇫🇷", "lat":  46.0,  "lon":   2.0,  "region": "Europe"},
+    "SWITZERLAND":      {"id": "CH", "name": "Switzerland",   "flag": "🇨🇭", "lat":  47.0,  "lon":   8.0,  "region": "Europe"},
+    "RUSSIA":           {"id": "RU", "name": "Russia",        "flag": "🇷🇺", "lat":  60.0,  "lon": 100.0,  "region": "Europe/Asia"},
+    "CHINA":            {"id": "CN", "name": "China",         "flag": "🇨🇳", "lat":  35.0,  "lon": 105.0,  "region": "Asia"},
+    "SOUTH KOREA":      {"id": "KR", "name": "South Korea",   "flag": "🇰🇷", "lat":  37.0,  "lon": 127.5,  "region": "Asia"},
+    "REPUBLIC OF KOREA":{"id": "KR", "name": "South Korea",   "flag": "🇰🇷", "lat":  37.0,  "lon": 127.5,  "region": "Asia"},
+    "JAPAN":            {"id": "JP", "name": "Japan",         "flag": "🇯🇵", "lat":  36.0,  "lon": 138.0,  "region": "Asia"},
+    "SENEGAL":          {"id": "SN", "name": "Senegal",       "flag": "🇸🇳", "lat":  14.0,  "lon": -14.0,  "region": "Africa"},
+    "SOUTH AFRICA":     {"id": "ZA", "name": "South Africa",  "flag": "🇿🇦", "lat": -30.0,  "lon":  25.0,  "region": "Africa"},
+}
+
+
+def _parse_promed_location(title: str) -> dict | None:
+    """Extract country from a ProMED title like 'HANTAVIRUS, HUMAN - ARGENTINA: (TUCUMAN)'."""
+    m = re.search(r"HANTAVIRUS[^-]*-\s*([A-Z][A-Z\s]+?)(?:\s*[:(,]|\s*$)", title, re.I)
+    if not m:
+        return None
+    return _PROMED_COUNTRY_MAP.get(m.group(1).strip().upper())
+
 _BASELINE = {
     "name": "Andes Hantavirus",
     "subtype": "HPS — Hantavirus Pulmonary Syndrome",
@@ -274,6 +308,30 @@ async def get_hantavirus_data() -> dict:
         outbreak["data_note"] = "Case counts parsed live from Solvr Hantavirus Tracker Skill"
     else:
         outbreak["data_note"] = "Case counts from Solvr Hantavirus Tracker Skill snapshot (2026-05-06). Live parse unavailable."
+
+    # Merge ProMED-detected locations into affected regions
+    existing_ids = {a["id"] for a in outbreak["affected"]}
+    for article in global_intel:
+        if article.get("source") != "ProMED Mail":
+            continue
+        loc = _parse_promed_location(article.get("title", ""))
+        if not loc or loc["id"] in existing_ids:
+            continue
+        existing_ids.add(loc["id"])
+        outbreak["affected"].append({
+            "id": loc["id"],
+            "name": loc["name"],
+            "region": loc["region"],
+            "flag": loc["flag"],
+            "lat": loc["lat"],
+            "lon": loc["lon"],
+            "cases": None,
+            "confirmed": None,
+            "deaths": None,
+            "status": "REPORTED",
+            "detail": f"Reported via ProMED Mail: {article['title'][:140]}",
+            "source": "ProMED",
+        })
 
     data: dict = {
         "success": True,
