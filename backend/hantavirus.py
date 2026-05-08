@@ -20,6 +20,12 @@ _NEWS_FEEDS = [
     ("Solvr Intel Global", "https://www.theguardian.com/society/health/rss"),
 ]
 
+# Global disease surveillance feeds (fetched separately for global_intel field)
+_GLOBAL_INTEL_FEEDS = [
+    ("ProMED Mail", "https://promedmail.org/feed/"),
+    ("HealthMap", "https://healthmap.org/rss/en/"),
+]
+
 _BASELINE = {
     "name": "Andes Hantavirus",
     "subtype": "HPS — Hantavirus Pulmonary Syndrome",
@@ -197,6 +203,7 @@ async def get_hantavirus_data() -> dict:
         return cached[0]
 
     news_items: list[dict] = []
+    global_intel: list[dict] = []
     live_counts: dict = {}
     who_article_date: str | None = None
 
@@ -205,13 +212,22 @@ async def get_hantavirus_data() -> dict:
             headers={"User-Agent": "HantavirusTracker/1.0 (https://github.com/solvrbase/solvr-hantavirus-tracker)"},
             follow_redirects=True,
         ) as client:
-            all_articles: list[dict] = []
-            for feed_name, feed_url in _NEWS_FEEDS:
-                articles = await _fetch_rss(client, feed_name, feed_url)
-                all_articles.extend(articles)
+            # Fetch cluster intel feeds + global surveillance feeds in parallel
+            import asyncio
+            cluster_results, global_results = await asyncio.gather(
+                asyncio.gather(*[_fetch_rss(client, n, u) for n, u in _NEWS_FEEDS], return_exceptions=True),
+                asyncio.gather(*[_fetch_rss(client, n, u) for n, u in _GLOBAL_INTEL_FEEDS], return_exceptions=True),
+                return_exceptions=True,
+            )
 
-        hanta_articles = [a for a in all_articles if _is_hantavirus(a["title"], a["summary"])]
+        # Cluster intel (MV Hondius specific)
+        all_cluster: list[dict] = []
+        if isinstance(cluster_results, list):
+            for r in cluster_results:
+                if isinstance(r, list):
+                    all_cluster.extend(r)
 
+        hanta_articles = [a for a in all_cluster if _is_hantavirus(a["title"], a["summary"])]
         for article in hanta_articles:
             text = article["title"] + " " + article["summary"]
             parsed = _parse_cases(text)
@@ -219,7 +235,6 @@ async def get_hantavirus_data() -> dict:
                 live_counts = parsed
                 who_article_date = article.get("published_at")
                 break
-
         for a in hanta_articles[:6]:
             news_items.append({
                 "title": a["title"],
@@ -228,6 +243,20 @@ async def get_hantavirus_data() -> dict:
                 "published_at": a["published_at"],
                 "summary": a["summary"],
             })
+
+        # Global surveillance intel (ProMED + HealthMap)
+        if isinstance(global_results, list):
+            for r in global_results:
+                if isinstance(r, list):
+                    for a in r:
+                        if _is_hantavirus(a["title"], a["summary"]):
+                            global_intel.append({
+                                "title": a["title"],
+                                "url": a["url"],
+                                "source": a["source"],
+                                "published_at": a["published_at"],
+                                "summary": a["summary"],
+                            })
 
     except Exception as e:
         logger.warning(f"RSS pipeline failed: {e}")
@@ -250,6 +279,7 @@ async def get_hantavirus_data() -> dict:
         "success": True,
         "outbreak": outbreak,
         "news": news_items,
+        "global_intel": global_intel[:12],
         "fetched_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
     }
     _cache["data"] = (data, now)
