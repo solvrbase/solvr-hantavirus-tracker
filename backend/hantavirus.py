@@ -12,18 +12,16 @@ logger = logging.getLogger(__name__)
 _CACHE_TTL = 7200  # 2 hours
 _cache: dict = {}
 
-_SOLVR_INTEL_RSS = "https://www.who.int/feeds/entity/csr/don/en/rss.xml"
-
 _NEWS_FEEDS = [
-    ("Solvr Hantavirus Tracker Skill", _SOLVR_INTEL_RSS),
+    ("Solvr Intel", "https://news.google.com/rss/search?q=hantavirus&hl=en-US&gl=US&ceid=US:en"),
     ("Solvr Intel Health", "http://feeds.bbci.co.uk/news/health/rss.xml"),
     ("Solvr Intel Global", "https://www.theguardian.com/society/health/rss"),
 ]
 
-# Global disease surveillance feeds (fetched separately for global_intel field)
+# Global disease surveillance feeds — Google News RSS (ProMED/HealthMap RSS shut down 2023, WHO DON RSS dead)
 _GLOBAL_INTEL_FEEDS = [
-    ("ProMED Mail", "https://promedmail.org/feed/"),
-    ("HealthMap", "https://healthmap.org/rss/en/"),
+    ("Global Health News", "https://news.google.com/rss/search?q=hantavirus&hl=en-US&gl=US&ceid=US:en"),
+    ("WHO Outbreak Intel", "https://news.google.com/rss/search?q=hantavirus+WHO+confirmed+cases&hl=en-US&gl=US&ceid=US:en"),
 ]
 
 _PROMED_COUNTRY_MAP: dict[str, dict] = {

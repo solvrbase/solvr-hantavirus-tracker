@@ -639,7 +639,7 @@ export default function HantavirusPage() {
               ) : (
                 <div className="space-y-3">
                   {globalIntel.map((item, i) => {
-                    const sourceColor = item.source === "ProMED Mail"
+                    const sourceColor = item.source === "WHO Outbreak Intel"
                       ? { text: "text-amber-400", bg: "bg-amber-500/10", border: "border-amber-500/20" }
                       : { text: "text-blue-400", bg: "bg-blue-500/10", border: "border-blue-500/20" };
                     return (
