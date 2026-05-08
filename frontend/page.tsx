@@ -84,6 +84,7 @@ type OutbreakData = {
   global_intel?: NewsItem[];
   global_confirmed?: number | null;
   global_confirmed_date?: string | null;
+  global_confirmed_live?: boolean;
   fetched_at: string;
 };
 
@@ -270,6 +271,7 @@ export default function HantavirusPage() {
   const globalIntel = data?.global_intel ?? [];
   const globalConfirmed = data?.global_confirmed ?? null;
   const globalConfirmedDate = data?.global_confirmed_date ?? null;
+  const globalConfirmedLive = data?.global_confirmed_live ?? false;
 
   return (
     <div
@@ -302,7 +304,7 @@ export default function HantavirusPage() {
             Global <span className="text-red-500">Hantavirus</span> Tracker
           </h1>
           <p className="text-gray-400 text-sm">
-            Real-time global surveillance · ProMED Mail + HealthMap + Solvr Intel · 20+ strains tracked
+            Real-time global surveillance · Google News + Solvr Intel · 20+ strains tracked
           </p>
           <p className="text-gray-600 text-xs mt-1">
             Active cluster: 2026 MV Hondius (Andes strain · P2P) · Last updated {outbreak?.last_updated ?? "…"}
@@ -330,31 +332,21 @@ export default function HantavirusPage() {
                 <span>🌐</span> GLOBAL HANTAVIRUS SURVEILLANCE
               </div>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                {/* Global confirmed — live from WHO RSS parse */}
+                {/* Global confirmed */}
                 <div
                   className="rounded-xl border bg-blue-950/10 px-4 py-3 text-center"
                   style={{ borderColor: "#ef444422" }}
                 >
-                  {globalConfirmed !== null ? (
-                    <>
-                      <div className="text-2xl font-black mb-0.5 text-red-400 flex items-center justify-center gap-1.5">
-                        <AnimatedCounter value={globalConfirmed} />
-                        <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse mb-1" />
-                      </div>
-                      <div className="text-[10px] font-mono uppercase tracking-widest text-gray-400">WHO CONFIRMED</div>
-                      <div className="text-[10px] text-gray-600 mt-0.5">
-                        {globalConfirmedDate
-                          ? new Date(globalConfirmedDate.endsWith("Z") ? globalConfirmedDate : globalConfirmedDate + "Z").toLocaleDateString()
-                          : "live"}
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <div className="text-2xl font-black mb-0.5 text-gray-600">—</div>
-                      <div className="text-[10px] font-mono uppercase tracking-widest text-gray-400">WHO CONFIRMED</div>
-                      <div className="text-[10px] text-gray-600 mt-0.5">parsing live feed</div>
-                    </>
-                  )}
+                  <div className="text-2xl font-black mb-0.5 text-red-400 flex items-center justify-center gap-1.5">
+                    <AnimatedCounter value={globalConfirmed ?? 159} />
+                    <div className={`w-1.5 h-1.5 rounded-full mb-1 ${globalConfirmedLive ? "bg-green-400 animate-pulse" : "bg-yellow-400"}`} />
+                  </div>
+                  <div className="text-[10px] font-mono uppercase tracking-widest text-gray-400">WHO CONFIRMED</div>
+                  <div className="text-[10px] text-gray-600 mt-0.5">
+                    {globalConfirmedLive
+                      ? (globalConfirmedDate ? new Date(globalConfirmedDate.endsWith("Z") ? globalConfirmedDate : globalConfirmedDate + "Z").toLocaleDateString() : "live")
+                      : "snapshot"}
+                  </div>
                 </div>
 
                 {[
@@ -362,7 +354,7 @@ export default function HantavirusPage() {
                     label: "GLOBAL REPORTS",
                     display: globalIntel.length > 0 ? `${globalIntel.length}` : "live",
                     color: "#3b82f6",
-                    sub: "ProMED + HealthMap",
+                    sub: "Google News · live",
                   },
                   { label: "WHO GLOBAL RISK", display: outbreak.who_global_risk ?? "LOW", color: "#22c55e", sub: "current assessment" },
                   { label: "STRAINS TRACKED", display: "20+", color: "#a855f7", sub: "Andes · SNV · Puumala · more" },
@@ -379,7 +371,7 @@ export default function HantavirusPage() {
                 ))}
               </div>
               <div className="mt-2 text-[10px] text-gray-700 text-right font-mono">
-                WHO confirmed: parsed live from WHO DON RSS · Risk: WHO assessment · Reports: ProMED Mail + HealthMap
+                WHO confirmed: WHO snapshot · live parse via Google News · Risk: WHO assessment
               </div>
             </div>
 
@@ -618,7 +610,7 @@ export default function HantavirusPage() {
                   GLOBAL HANTAVIRUS INTELLIGENCE
                 </div>
                 <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20">
-                  ProMED + HealthMap
+                  Google News · live
                 </span>
                 {globalIntel.length > 0 && (
                   <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-green-500/10 text-green-400 border border-green-500/20">
@@ -632,7 +624,7 @@ export default function HantavirusPage() {
                   <div>
                     <div className="text-gray-400 font-medium mb-1">No new global hantavirus reports in live feeds</div>
                     <div className="text-gray-600 leading-relaxed">
-                      ProMED Mail and HealthMap are being monitored in real-time. When new hantavirus cases are reported globally — Argentina, Chile, USA, Europe, or elsewhere — articles will appear here automatically.
+                      Google News is being monitored in real-time. When new hantavirus cases are reported globally — Argentina, Chile, USA, Europe, or elsewhere — articles will appear here automatically.
                     </div>
                   </div>
                 </div>

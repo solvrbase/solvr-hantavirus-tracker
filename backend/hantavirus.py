@@ -73,6 +73,8 @@ _BASELINE = {
     "source": "Solvr Hantavirus Tracker Skill",
     "source_url": "https://solvrbot.com/hantavirus",
     "live_data": False,
+    "global_confirmed_baseline": 159,
+    "global_confirmed_baseline_date": "2026-05-08",
     "transmission": {
         "type": "Zoonotic (rodent-borne)",
         "vector": "Andes deer mouse — Oligoryzomys longicaudatus",
@@ -347,8 +349,9 @@ async def get_hantavirus_data() -> dict:
         "outbreak": outbreak,
         "news": news_items,
         "global_intel": global_intel[:12],
-        "global_confirmed": global_confirmed,
-        "global_confirmed_date": global_confirmed_date,
+        "global_confirmed": global_confirmed or _BASELINE["global_confirmed_baseline"],
+        "global_confirmed_date": global_confirmed_date or _BASELINE["global_confirmed_baseline_date"],
+        "global_confirmed_live": global_confirmed is not None,
         "fetched_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
     }
     _cache["data"] = (data, now)
