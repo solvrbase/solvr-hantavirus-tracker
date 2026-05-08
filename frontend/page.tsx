@@ -82,6 +82,8 @@ type OutbreakData = {
   outbreak: Outbreak;
   news: NewsItem[];
   global_intel?: NewsItem[];
+  global_confirmed?: number | null;
+  global_confirmed_date?: string | null;
   fetched_at: string;
 };
 
@@ -266,6 +268,8 @@ export default function HantavirusPage() {
   const outbreak = data?.outbreak;
   const news = data?.news ?? [];
   const globalIntel = data?.global_intel ?? [];
+  const globalConfirmed = data?.global_confirmed ?? null;
+  const globalConfirmedDate = data?.global_confirmed_date ?? null;
 
   return (
     <div
@@ -326,14 +330,40 @@ export default function HantavirusPage() {
                 <span>🌐</span> GLOBAL HANTAVIRUS SURVEILLANCE
               </div>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {/* Global confirmed — live from WHO RSS parse */}
+                <div
+                  className="rounded-xl border bg-blue-950/10 px-4 py-3 text-center"
+                  style={{ borderColor: "#ef444422" }}
+                >
+                  {globalConfirmed !== null ? (
+                    <>
+                      <div className="text-2xl font-black mb-0.5 text-red-400 flex items-center justify-center gap-1.5">
+                        <AnimatedCounter value={globalConfirmed} />
+                        <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse mb-1" />
+                      </div>
+                      <div className="text-[10px] font-mono uppercase tracking-widest text-gray-400">WHO CONFIRMED</div>
+                      <div className="text-[10px] text-gray-600 mt-0.5">
+                        {globalConfirmedDate
+                          ? new Date(globalConfirmedDate.endsWith("Z") ? globalConfirmedDate : globalConfirmedDate + "Z").toLocaleDateString()
+                          : "live"}
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="text-2xl font-black mb-0.5 text-gray-600">—</div>
+                      <div className="text-[10px] font-mono uppercase tracking-widest text-gray-400">WHO CONFIRMED</div>
+                      <div className="text-[10px] text-gray-600 mt-0.5">parsing live feed</div>
+                    </>
+                  )}
+                </div>
+
                 {[
                   {
                     label: "GLOBAL REPORTS",
-                    display: globalIntel.length > 0 ? `${globalIntel.length}` : "tracking",
+                    display: globalIntel.length > 0 ? `${globalIntel.length}` : "live",
                     color: "#3b82f6",
-                    sub: globalIntel.length > 0 ? "ProMED + HealthMap" : "ProMED + HealthMap · live",
+                    sub: "ProMED + HealthMap",
                   },
-                  { label: "ANNUAL BURDEN", display: "~300+", color: "#6366f1", sub: "cases/yr · Americas" },
                   { label: "WHO GLOBAL RISK", display: outbreak.who_global_risk ?? "LOW", color: "#22c55e", sub: "current assessment" },
                   { label: "STRAINS TRACKED", display: "20+", color: "#a855f7", sub: "Andes · SNV · Puumala · more" },
                 ].map((stat) => (
@@ -349,7 +379,7 @@ export default function HantavirusPage() {
                 ))}
               </div>
               <div className="mt-2 text-[10px] text-gray-700 text-right font-mono">
-                Annual burden: PAHO/WHO aggregate · Live reports: ProMED Mail + HealthMap RSS
+                WHO confirmed: parsed live from WHO DON RSS · Risk: WHO assessment · Reports: ProMED Mail + HealthMap
               </div>
             </div>
 

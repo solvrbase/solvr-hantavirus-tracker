@@ -309,6 +309,17 @@ async def get_hantavirus_data() -> dict:
     else:
         outbreak["data_note"] = "Case counts from Solvr Hantavirus Tracker Skill snapshot (2026-05-06). Live parse unavailable."
 
+    # Derive global confirmed count — highest case count across all articles
+    global_confirmed: int | None = None
+    global_confirmed_date: str | None = None
+    for article in news_items + global_intel:
+        text = (article.get("title") or "") + " " + (article.get("summary") or "")
+        parsed = _parse_cases(text)
+        n = parsed.get("total_cases")
+        if n and (global_confirmed is None or n > global_confirmed):
+            global_confirmed = n
+            global_confirmed_date = article.get("published_at")
+
     # Merge ProMED-detected locations into affected regions
     existing_ids = {a["id"] for a in outbreak["affected"]}
     for article in global_intel:
@@ -338,6 +349,8 @@ async def get_hantavirus_data() -> dict:
         "outbreak": outbreak,
         "news": news_items,
         "global_intel": global_intel[:12],
+        "global_confirmed": global_confirmed,
+        "global_confirmed_date": global_confirmed_date,
         "fetched_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
     }
     _cache["data"] = (data, now)
